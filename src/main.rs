@@ -32,7 +32,7 @@ const ADDR: Ipv4Addr = Ipv4Addr::UNSPECIFIED;
 
 #[tokio::main]
 async fn main() {
-    let _ = dotenvy::dotenv_override(); // it doesn't matter if there isnt a .env
+    let _ = dotenvy::dotenv_override(); // it doesn't matter if there isnt a .env 
     #[cfg(not(feature = "https"))]
     http_main().await;
     #[cfg(feature = "https")]
