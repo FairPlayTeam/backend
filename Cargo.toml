@@ -3,8 +3,14 @@ name = "backend"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+https = ["dep:rustls"]
+
 [dependencies]
 axum = "0.8.4"
+axum-server = { version = "0.7.2", features = ["tls-rustls"] }
+dotenvy = "0.15.7"
+rustls = { version = "0.23.31", optional = true }
 serde = { version = "1.0.221", features = ["derive"] }
 serde_json = "1.0.145"
 tokio = { version = "1.47.1", features = ["rt-multi-thread"] }
