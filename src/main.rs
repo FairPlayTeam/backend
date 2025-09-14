@@ -1,45 +1,59 @@
-use std::{net::Ipv4Addr, sync::Arc};
+use std::net::{Ipv4Addr, SocketAddrV4};
 
-use axum::{Json, Router, extract::State, routing::post};
-use serde::{Deserialize, Serialize};
-use tokio::{net::TcpListener, sync::RwLock};
+use crate::app::new_app;
 
-#[derive(Debug, Default, Clone)]
-struct AppState {
-    value: Arc<RwLock<f64>>,
-}
+// enforce https on release to make sure no one forgets to use https
+#[cfg(all(not(debug_assertions), not(feature = "https")))]
+compile_error!("Feature `https` must be enabled on release.");
 
-#[derive(Serialize, Deserialize, Debug, Default, Clone, Copy)]
-struct Payload {
-    value: f64,
-}
+mod app;
+
+#[cfg(not(debug_assertions))]
+const PORT: u16 = 443;
+#[cfg(debug_assertions)]
+const PORT: u16 = 8080;
+
+#[cfg(debug_assertions)]
+const ADDR: SocketAddrV4 = SocketAddrV4::new(Ipv4Addr::LOCALHOST, PORT);
+#[cfg(not(debug_assertions))]
+const ADDR: SocketAddrV4 = SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, PORT);
 
 #[tokio::main]
 async fn main() {
-    let value = Arc::new(RwLock::const_new(0.0));
+    let _ = dotenvy::dotenv_override(); // it doesn't matter if there isnt a .env
+    #[cfg(not(feature = "https"))]
+    http_main().await;
+    #[cfg(feature = "https")]
+    https_main().await;
+}
 
-    let app = Router::new()
-        .route("/value", post(put_value).get(get_value))
-        .with_state(AppState {
-            value: value.clone(),
-        });
+#[cfg(not(feature = "https"))]
+async fn http_main() {
+    let app = new_app();
 
-    axum::serve(
-        TcpListener::bind((Ipv4Addr::new(0, 0, 0, 0), 8080))
-            .await
-            .unwrap(),
-        app,
+    axum_server::bind(std::net::SocketAddr::V4(ADDR))
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
+}
+
+#[cfg(feature = "https")]
+async fn https_main() {
+    use axum_server::tls_rustls::RustlsConfig;
+
+    // configure certificate and private key used by https
+    let config = RustlsConfig::from_pem_file(
+        dotenvy::var("HTTPS_CERT_PATH").expect("Environment variable `HTTPS_CERT_PATH` not found.\nCreate it in a .env within the cwd or in the environment"),
+        dotenvy::var("HTTPS_KEY_PATH").expect("Environment variable `HTTPS_KEY_PATH` not found.\nCreate it in a .env within the cwd or in the environment"),
     )
     .await
-    .unwrap()
-}
+    .unwrap();
 
-async fn put_value(
-    State(AppState { value: state }): State<AppState>,
-    Json(payload): Json<Payload>,
-) {
-    *state.write().await = payload.value;
-}
-async fn get_value(State(state): State<AppState>) -> Json<f64> {
-    Json(*state.value.read().await)
+    let app = new_app();
+
+    // run https server
+    axum_server::bind_rustls(std::net::SocketAddr::V4(ADDR), config)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
 }
