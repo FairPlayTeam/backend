@@ -1,6 +1,6 @@
 use std::{net::Ipv4Addr, sync::Arc};
 
-use axum::{Json, Router, extract::State, routing::post, serve::Listener};
+use axum::{Json, Router, extract::State, routing::post};
 use serde::{Deserialize, Serialize};
 use tokio::{net::TcpListener, sync::RwLock};
 
