@@ -1,0 +1,30 @@
+name:
+    check
+on:
+    pull_request:
+        branches:
+            main
+permissions:
+    contents: read
+jobs:
+    build:
+        name: check
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+            - name: Setup rust
+              uses: actions-rs/toolchain@v1
+              with:
+                toolchain: stable
+            # - name: Install system dependencies
+            #   run:
+            #     sudo apt-get update
+            - name: Install clippy
+              run:
+                rustup component add clippy
+            - name: Check formatting
+              run:
+                cargo fmt --all --check
+            - name: Check
+              run: |
+                cargo clippy -- -D warnings
