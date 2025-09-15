@@ -1,4 +1,7 @@
-use std::{env::VarError, net::{Ipv4Addr, SocketAddr, SocketAddrV4}};
+use std::{
+    env::VarError,
+    net::{Ipv4Addr, SocketAddr, SocketAddrV4},
+};
 
 use crate::app::new_app;
 
@@ -14,18 +17,18 @@ async fn main() {
     let _ = dotenvy::dotenv_override(); // it doesn't matter if there isnt a .env
     let app = new_app();
 
-    let port = dotenvy::var("HTTP_PORT").map(|x| x.parse().unwrap()).unwrap_or_else(|err| {
-        match &err {
+    let port = dotenvy::var("HTTP_PORT")
+        .map(|x| x.parse().unwrap())
+        .unwrap_or_else(|err| match &err {
             dotenvy::Error::EnvVar(VarError::NotPresent) => {
                 if cfg!(debug_assertions) {
                     8080
                 } else {
                     80
                 }
-            },
+            }
             _ => panic!("{err}"),
-        }
-    });
+        });
 
     axum_server::bind(SocketAddr::V4(SocketAddrV4::new(ADDR, port)))
         .serve(app.into_make_service())
