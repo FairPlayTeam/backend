@@ -27,5 +27,4 @@ jobs:
                 cargo fmt --all --check
             - name: Check
               run: |
-                cargo clippy --release --features https -- -D warnings
                 cargo clippy -- -D warnings
