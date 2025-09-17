@@ -1,7 +1,9 @@
 use std::{
     env::VarError,
-    net::{Ipv4Addr, SocketAddr, SocketAddrV4},
+    net::{Ipv4Addr, SocketAddrV4},
 };
+
+use tokio::net::TcpListener;
 
 use crate::app::new_app;
 
@@ -30,8 +32,9 @@ async fn main() {
             _ => panic!("{err}"),
         });
 
-    axum_server::bind(SocketAddr::V4(SocketAddrV4::new(ADDR, port)))
-        .serve(app.into_make_service())
+    let listener = TcpListener::bind(SocketAddrV4::new(ADDR, port))
         .await
         .unwrap();
+
+    axum::serve(listener, app).await.unwrap();
 }
