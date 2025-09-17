@@ -9,11 +9,6 @@ use crate::app::new_app;
 
 mod app;
 
-#[cfg(debug_assertions)]
-const ADDR: Ipv4Addr = Ipv4Addr::LOCALHOST;
-#[cfg(not(debug_assertions))]
-const ADDR: Ipv4Addr = Ipv4Addr::UNSPECIFIED;
-
 #[tokio::main]
 async fn main() {
     let _ = dotenvy::dotenv_override(); // it doesn't matter if there isnt a .env
@@ -32,7 +27,14 @@ async fn main() {
             _ => panic!("{err}"),
         });
 
-    let listener = TcpListener::bind(SocketAddrV4::new(ADDR, port))
+    let addr = dotenvy::var("HTTP_ADDR")
+        .map(|x| x.parse().unwrap())
+        .unwrap_or_else(|err| match &err {
+            dotenvy::Error::EnvVar(VarError::NotPresent) => Ipv4Addr::LOCALHOST,
+            _ => panic!("{err}"),
+        });
+
+    let listener = TcpListener::bind(SocketAddrV4::new(addr, port))
         .await
         .unwrap();
 
