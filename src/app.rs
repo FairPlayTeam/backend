@@ -6,7 +6,7 @@ use std::{
 use argon2::{Algorithm, Argon2, Params, Version};
 use axum::{Json, Router, extract::State, routing::post};
 use serde::{Deserialize, Serialize};
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::RwLock;
 use tokio_postgres::{Config, config::SslMode};
 
 use crate::app::auth::{AuthState, Token, router};
@@ -16,7 +16,7 @@ mod auth;
 #[derive(Debug, Clone)]
 struct AppState {
     value: Arc<RwLock<f64>>,
-    auth: Arc<Mutex<AuthState>>,
+    auth: Arc<AuthState>,
     hasher: Argon2<'static>,
 }
 impl AppState {
@@ -40,12 +40,12 @@ impl AppState {
 
         Self {
             value: Arc::new(RwLock::new(0.0)),
-            auth: Arc::new(Mutex::new(AuthState::new(&cfg).await)),
+            auth: Arc::new(AuthState::new(&cfg).await),
             hasher: Argon2::new(Algorithm::Argon2id, Version::V0x13, Params::DEFAULT),
         }
     }
     async fn validate_token(&self, token: &Token) -> bool {
-        self.auth.lock().await.tokens.contains_key(token)
+        self.auth.tokens.lock().await.contains_key(token)
     }
 }
 

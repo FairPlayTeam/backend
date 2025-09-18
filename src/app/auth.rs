@@ -8,10 +8,15 @@ use axum::{Json, Router, extract::State, routing::post};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as};
-use tokio_postgres::{Client, Config, NoTls};
+use tokio::sync::Mutex;
+use tokio_postgres::Config;
 use uuid::Uuid;
 
+use crate::app::auth::db::Database;
+
 use super::AppState;
+
+mod db;
 
 #[serde_as]
 #[derive(Serialize, Deserialize, Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
@@ -19,17 +24,13 @@ pub struct Token(#[serde_as(as = "Base64")] pub [u8; 32]);
 
 #[derive(Debug)]
 pub struct AuthState {
-    db: Client,
-    pub tokens: HashMap<Token, Uuid>,
+    db: Database,
+    pub tokens: Mutex<HashMap<Token, Uuid>>,
 }
 impl AuthState {
     pub async fn new(cfg: &Config) -> Self {
-        let (client, connection) = cfg.connect(NoTls).await.unwrap();
-        tokio::spawn(async {
-            connection.await.unwrap(); // run the connection on a bg task
-        });
         Self {
-            db: client,
+            db: Database::new(cfg).await,
             tokens: Default::default(),
         }
     }
@@ -56,24 +57,10 @@ async fn register(
     let salt = SaltString::generate(&mut OsRng);
     let hash = state.hasher.hash_password(&request.secret, &salt).unwrap();
 
-    let lock = state.auth.lock().await;
-    let res = lock
+    let res = state
+        .auth
         .db
-        .execute(
-            "WITH new_user AS (
-                INSERT INTO public.users (password_hash, email)
-                VALUES ($2, $3)
-                RETURNING id
-            )
-            INSERT INTO public.user_accounts (id, username)
-            SELECT id, $1
-            FROM new_user;",
-            &[
-                &request.username,
-                &hash.serialize().as_str(),
-                &request.email,
-            ],
-        )
+        .create_user(&request.username, &request.email, hash.serialize())
         .await;
     let res = res.map_err(|x| Json(Err(x.to_string())));
     if let Err(e) = res {
@@ -94,16 +81,7 @@ async fn login(
     State(state): State<AppState>,
     Json(request): Json<LoginRequest>,
 ) -> Json<Result<Token, String>> {
-    let mut lock = state.auth.lock().await;
-    let res = lock
-        .db
-        .query_one(
-            "SELECT id, password_hash
-            FROM public.users
-            WHERE email = $1;",
-            &[&request.email],
-        )
-        .await;
+    let res = state.auth.db.get_user(&request.email).await;
     let res = res.map_err(|x| Json(Err(x.to_string())));
     let row = match res {
         Ok(row) => row,
@@ -121,7 +99,15 @@ async fn login(
         .is_ok()
     {
         let token = Token(rand::rng().random::<[u8; 32]>());
-        assert!(lock.tokens.insert(token, row.get("id")).is_none()); // we should never see a token collision
+        assert!(
+            state
+                .auth
+                .tokens
+                .lock()
+                .await
+                .insert(token, row.get("id"))
+                .is_none()
+        ); // we should never see a token collision
         Json(Ok(token))
     } else {
         Json(Err("INVALID_CREDENTIALS".to_string()))
