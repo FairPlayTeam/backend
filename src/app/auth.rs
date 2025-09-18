@@ -20,12 +20,14 @@ pub struct AuthState {
 }
 impl AuthState {
     pub async fn new(cfg: &Config) -> Self {
-        let (client, connection) = cfg.connect(NoTls)
-            .await.unwrap();
+        let (client, connection) = cfg.connect(NoTls).await.unwrap();
         tokio::spawn(async {
             connection.await.unwrap(); // run the connection on a bg task
         });
-        Self { db: client, tokens: Default::default() }
+        Self {
+            db: client,
+            tokens: Default::default(),
+        }
     }
 }
 
@@ -48,8 +50,10 @@ async fn register(
     Json(request): Json<RegisterRequest>,
 ) -> Json<Result<(), String>> {
     let lock = state.auth.lock().await;
-    let res = lock.db.execute(
-        "WITH new_user AS (
+    let res = lock
+        .db
+        .execute(
+            "WITH new_user AS (
             INSERT INTO public.users (email, password_hash)
             VALUES ($3, $2)
             RETURNING id
@@ -57,8 +61,10 @@ async fn register(
         INSERT INTO public.user_accounts (id, username)
         SELECT id, $1
         FROM new_user;",
-        &[&request.username, &request.secret, &request.email]).await;
-    let res = res.map_err(|x| { Json(Err(x.to_string())) });
+            &[&request.username, &request.secret, &request.email],
+        )
+        .await;
+    let res = res.map_err(|x| Json(Err(x.to_string())));
     if let Err(e) = res {
         return e;
     }
@@ -78,12 +84,16 @@ async fn login(
     Json(request): Json<LoginRequest>,
 ) -> Json<Result<Token, String>> {
     let mut lock = state.auth.lock().await;
-    let res = lock.db.query_one(
-        "SELECT id, password_hash
+    let res = lock
+        .db
+        .query_one(
+            "SELECT id, password_hash
         FROM public.users
         WHERE email = $1;",
-        &[&request.email]).await;
-    let res = res.map_err(|x| { Json(Err(x.to_string())) });
+            &[&request.email],
+        )
+        .await;
+    let res = res.map_err(|x| Json(Err(x.to_string())));
     let row = match res {
         Ok(row) => row,
         Err(err) => return err,

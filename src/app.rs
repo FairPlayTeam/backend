@@ -1,9 +1,12 @@
-use std::{net::{IpAddr, Ipv4Addr}, sync::Arc};
+use std::{
+    net::{IpAddr, Ipv4Addr},
+    sync::Arc,
+};
 
 use axum::{Json, Router, extract::State, routing::post};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{Mutex, RwLock};
-use tokio_postgres::{config::SslMode, Config};
+use tokio_postgres::{Config, config::SslMode};
 
 use crate::app::auth::{AuthState, Token, router};
 
@@ -18,8 +21,7 @@ impl AppState {
     async fn new() -> Self {
         let mut cfg = Config::new();
 
-        cfg
-            .hostaddr(IpAddr::V4(Ipv4Addr::LOCALHOST))
+        cfg.hostaddr(IpAddr::V4(Ipv4Addr::LOCALHOST))
             .ssl_mode(SslMode::Disable);
 
         if let Ok(user) = dotenvy::var("POSTGRES_USER") {
