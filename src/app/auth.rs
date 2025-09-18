@@ -1,5 +1,9 @@
 use std::collections::HashMap;
 
+use argon2::{
+    PasswordVerifier,
+    password_hash::{PasswordHashString, PasswordHasher, SaltString, rand_core::OsRng},
+};
 use axum::{Json, Router, extract::State, routing::post};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -49,19 +53,26 @@ async fn register(
     State(state): State<AppState>,
     Json(request): Json<RegisterRequest>,
 ) -> Json<Result<(), String>> {
+    let salt = SaltString::generate(&mut OsRng);
+    let hash = state.hasher.hash_password(&request.secret, &salt).unwrap();
+
     let lock = state.auth.lock().await;
     let res = lock
         .db
         .execute(
             "WITH new_user AS (
-            INSERT INTO public.users (email, password_hash)
-            VALUES ($3, $2)
-            RETURNING id
-        )
-        INSERT INTO public.user_accounts (id, username)
-        SELECT id, $1
-        FROM new_user;",
-            &[&request.username, &request.secret, &request.email],
+                INSERT INTO public.users (password_hash, email)
+                VALUES ($2, $3)
+                RETURNING id
+            )
+            INSERT INTO public.user_accounts (id, username)
+            SELECT id, $1
+            FROM new_user;",
+            &[
+                &request.username,
+                &hash.serialize().as_str(),
+                &request.email,
+            ],
         )
         .await;
     let res = res.map_err(|x| Json(Err(x.to_string())));
@@ -88,8 +99,8 @@ async fn login(
         .db
         .query_one(
             "SELECT id, password_hash
-        FROM public.users
-        WHERE email = $1;",
+            FROM public.users
+            WHERE email = $1;",
             &[&request.email],
         )
         .await;
@@ -98,7 +109,17 @@ async fn login(
         Ok(row) => row,
         Err(err) => return err,
     };
-    if row.get::<_, &[u8]>("password_hash") == request.secret {
+
+    if state
+        .hasher
+        .verify_password(
+            &request.secret,
+            &PasswordHashString::new(row.get::<_, &str>("password_hash"))
+                .unwrap()
+                .password_hash(),
+        )
+        .is_ok()
+    {
         let token = Token(rand::rng().random::<[u8; 32]>());
         assert!(lock.tokens.insert(token, row.get("id")).is_none()); // we should never see a token collision
         Json(Ok(token))

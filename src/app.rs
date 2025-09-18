@@ -3,6 +3,7 @@ use std::{
     sync::Arc,
 };
 
+use argon2::{Algorithm, Argon2, Params, Version};
 use axum::{Json, Router, extract::State, routing::post};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{Mutex, RwLock};
@@ -16,6 +17,7 @@ mod auth;
 struct AppState {
     value: Arc<RwLock<f64>>,
     auth: Arc<Mutex<AuthState>>,
+    hasher: Argon2<'static>,
 }
 impl AppState {
     async fn new() -> Self {
@@ -39,6 +41,7 @@ impl AppState {
         Self {
             value: Arc::new(RwLock::new(0.0)),
             auth: Arc::new(Mutex::new(AuthState::new(&cfg).await)),
+            hasher: Argon2::new(Algorithm::Argon2id, Version::V0x13, Params::DEFAULT),
         }
     }
     async fn validate_token(&self, token: &Token) -> bool {

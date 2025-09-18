@@ -6,12 +6,11 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE public.users (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   email text NOT NULL UNIQUE,
-  password_hash bytea NOT NULL, -- hashed password
+  password_hash text NOT NULL, -- hashed password
   created_at timestamp with time zone DEFAULT now(),
   is_active boolean DEFAULT true,
   last_login timestamp with time zone,
   CONSTRAINT users_pkey PRIMARY KEY (id)
-  -- CONSTRAINT password_hash_length CHECK (octet_length(password_hash) = 32)
 );
 
 -- ----------------------------
