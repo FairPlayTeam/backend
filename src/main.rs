@@ -12,7 +12,7 @@ mod app;
 #[tokio::main]
 async fn main() {
     let _ = dotenvy::dotenv_override(); // it doesn't matter if there isnt a .env
-    let app = new_app();
+    let app = new_app().await;
 
     let port = dotenvy::var("HTTP_PORT")
         .map(|x| x.parse().unwrap())
