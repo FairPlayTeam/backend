@@ -8,6 +8,7 @@ use axum::{Json, Router, extract::State, routing::post};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as};
+use tokio::sync::Mutex;
 use tokio_postgres::{Client, Config, NoTls};
 use uuid::Uuid;
 
@@ -20,7 +21,7 @@ pub struct Token(#[serde_as(as = "Base64")] pub [u8; 32]);
 #[derive(Debug)]
 pub struct AuthState {
     db: Client,
-    pub tokens: HashMap<Token, Uuid>,
+    pub tokens: Mutex<HashMap<Token, Uuid>>,
 }
 impl AuthState {
     pub async fn new(cfg: &Config) -> Self {
@@ -56,8 +57,8 @@ async fn register(
     let salt = SaltString::generate(&mut OsRng);
     let hash = state.hasher.hash_password(&request.secret, &salt).unwrap();
 
-    let lock = state.auth.lock().await;
-    let res = lock
+    let res = state
+        .auth
         .db
         .execute(
             "WITH new_user AS (
@@ -94,8 +95,8 @@ async fn login(
     State(state): State<AppState>,
     Json(request): Json<LoginRequest>,
 ) -> Json<Result<Token, String>> {
-    let mut lock = state.auth.lock().await;
-    let res = lock
+    let res = state
+        .auth
         .db
         .query_one(
             "SELECT id, password_hash
@@ -121,7 +122,15 @@ async fn login(
         .is_ok()
     {
         let token = Token(rand::rng().random::<[u8; 32]>());
-        assert!(lock.tokens.insert(token, row.get("id")).is_none()); // we should never see a token collision
+        assert!(
+            state
+                .auth
+                .tokens
+                .lock()
+                .await
+                .insert(token, row.get("id"))
+                .is_none()
+        ); // we should never see a token collision
         Json(Ok(token))
     } else {
         Json(Err("INVALID_CREDENTIALS".to_string()))
