@@ -1,19 +1,47 @@
-use std::sync::Arc;
+use std::{net::{IpAddr, Ipv4Addr}, sync::Arc};
 
 use axum::{Json, Router, extract::State, routing::post};
+use base64::{alphabet::STANDARD, engine::{GeneralPurpose, GeneralPurposeConfig}};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{Mutex, RwLock};
+use tokio_postgres::{config::SslMode, Config};
 
 use crate::app::auth::{AuthState, Token, router};
 
 mod auth;
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 struct AppState {
     value: Arc<RwLock<f64>>,
     auth: Arc<Mutex<AuthState>>,
+    base64: GeneralPurpose,
 }
 impl AppState {
+    async fn new() -> Self {
+        let mut cfg = Config::new();
+
+        cfg
+            .hostaddr(IpAddr::V4(Ipv4Addr::LOCALHOST))
+            .ssl_mode(SslMode::Disable);
+
+        if let Ok(user) = dotenvy::var("POSTGRES_USER") {
+            cfg.user(user);
+        } else {
+            cfg.user("fairplay-test");
+        }
+        if let Ok(password) = dotenvy::var("POSTGRES_PASSWORD") {
+            cfg.password(password);
+        } else {
+            cfg.password("fairplay");
+        }
+        cfg.dbname("fairplay-test");
+
+        Self {
+            value: Arc::new(RwLock::new(0.0)),
+            auth: Arc::new(Mutex::new(AuthState::new(&cfg).await)),
+            base64: GeneralPurpose::new(&STANDARD, GeneralPurposeConfig::new())
+        }
+    }
     async fn validate_token(&self, token: &Token) -> bool {
         self.auth.lock().await.tokens.contains_key(token)
     }
@@ -40,9 +68,9 @@ async fn get_value(State(state): State<AppState>) -> Json<f64> {
     Json(*state.value.read().await)
 }
 
-pub fn new_app() -> Router {
+pub async fn new_app() -> Router {
     Router::new()
         .route("/value", post(put_value).get(get_value))
         .nest("/auth", router())
-        .with_state(AppState::default())
+        .with_state(AppState::new().await)
 }
