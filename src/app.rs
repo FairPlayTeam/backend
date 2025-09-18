@@ -1,7 +1,6 @@
 use std::{net::{IpAddr, Ipv4Addr}, sync::Arc};
 
 use axum::{Json, Router, extract::State, routing::post};
-use base64::{alphabet::STANDARD, engine::{GeneralPurpose, GeneralPurposeConfig}};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{Mutex, RwLock};
 use tokio_postgres::{config::SslMode, Config};
@@ -14,7 +13,6 @@ mod auth;
 struct AppState {
     value: Arc<RwLock<f64>>,
     auth: Arc<Mutex<AuthState>>,
-    base64: GeneralPurpose,
 }
 impl AppState {
     async fn new() -> Self {
@@ -39,7 +37,6 @@ impl AppState {
         Self {
             value: Arc::new(RwLock::new(0.0)),
             auth: Arc::new(Mutex::new(AuthState::new(&cfg).await)),
-            base64: GeneralPurpose::new(&STANDARD, GeneralPurposeConfig::new())
         }
     }
     async fn validate_token(&self, token: &Token) -> bool {

@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use axum::{Json, Router, extract::State, routing::post};
-use base64::Engine;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as};
@@ -58,7 +57,7 @@ async fn register(
         INSERT INTO public.user_accounts (id, username)
         SELECT id, $1
         FROM new_user;",
-        &[&request.username, &state.base64.encode(request.secret), &request.email]).await;
+        &[&request.username, &request.secret, &request.email]).await;
     let res = res.map_err(|x| { Json(Err(x.to_string())) });
     if let Err(e) = res {
         return e;
@@ -89,7 +88,7 @@ async fn login(
         Ok(row) => row,
         Err(err) => return err,
     };
-    if state.base64.decode(row.get::<&str, String>("password_hash")).unwrap() == request.secret {
+    if row.get::<_, &[u8]>("password_hash") == request.secret {
         let token = Token(rand::rng().random::<[u8; 32]>());
         assert!(lock.tokens.insert(token, row.get("id")).is_none()); // we should never see a token collision
         Json(Ok(token))

@@ -6,11 +6,12 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE public.users (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   email text NOT NULL UNIQUE,
-  password_hash text NOT NULL, -- hashed password
+  password_hash bytea NOT NULL, -- hashed password
   created_at timestamp with time zone DEFAULT now(),
   is_active boolean DEFAULT true,
   last_login timestamp with time zone,
   CONSTRAINT users_pkey PRIMARY KEY (id)
+  -- CONSTRAINT password_hash_length CHECK (octet_length(password_hash) = 32)
 );
 
 -- ----------------------------
@@ -40,7 +41,7 @@ CREATE TABLE public.public_channels (
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT public_channels_pkey PRIMARY KEY (id),
   CONSTRAINT public_channels_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.user_accounts(id),
-  CONSTRAINT public_channels_handle_unique UNIQUE (handle)
+  CONSTRAINT public_channels_handle_unique UNIQUE (handle),
   CONSTRAINT public_channels_unique UNIQUE (user_id) -- one channel per user
 );
 
