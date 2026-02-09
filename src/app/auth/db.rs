@@ -8,25 +8,32 @@ pub struct Database {
     get_user_statement: Statement,
 }
 impl Database {
-    pub async fn new(cfg: &Config) -> Self {
-        let (client, connection) = cfg.connect(NoTls).await.unwrap();
+    pub async fn new(cfg: &Config) -> Result<Self, Error> {
+        // Removed .unwrap()
+        let (client, connection) = cfg.connect(NoTls).await?;
+        
         tokio::spawn(async {
-            connection.await.unwrap(); // run the connection on a bg task
+            if let Err(e) = connection.await {
+                eprintln!("connection error: {}", e);
+            }
         });
+
+        // Use ? operator to propagate errors
         let create_user_statement = client
             .prepare(include_str!("sql/create_user.sql"))
-            .await
-            .unwrap();
+            .await?;
+            
         let get_user_statement = client
             .prepare(include_str!("sql/get_user.sql"))
-            .await
-            .unwrap();
-        Self {
+            .await?;
+
+        Ok(Self {
             client,
             create_user_statement,
             get_user_statement,
-        }
+        })
     }
+    
     pub async fn create_user(
         &self,
         username: &str,
