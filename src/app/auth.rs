@@ -20,7 +20,7 @@ pub mod db;
 use super::AppState;
 use crate::app::auth::db::Database;
 
-const EXPIRATION_SECONDS: u64 = 86400; // 24 hours
+const EXPIRATION_SECONDS: u64 = 86400;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
@@ -91,7 +91,6 @@ impl FromRequestParts<AppState> for Claims {
         }
         let token = &auth_str[7..];
 
-        // Use cached secret from state, never env vars in hot path
         let token_data = decode::<Claims>(
             token,
             &DecodingKey::from_secret(state.jwt_secret.as_bytes()),
@@ -118,7 +117,6 @@ async fn register(
 ) -> Result<(), AuthError> {
     let salt = SaltString::generate(&mut OsRng);
 
-    // Explicit error mapping instead of unwrap
     let password_str =
         std::str::from_utf8(&request.secret).map_err(|_| AuthError::TokenCreation)?;
 
@@ -175,7 +173,6 @@ async fn login(
 
     let user_id: Uuid = row.get("id");
 
-    // Handle time error explicitly, though extremely rare
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|_| AuthError::TokenCreation)?
@@ -187,7 +184,6 @@ async fn login(
         exp: now + (EXPIRATION_SECONDS as usize),
     };
 
-    // Use cached secret from state
     let token = encode(
         &Header::default(),
         &claims,

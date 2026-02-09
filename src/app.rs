@@ -26,7 +26,6 @@ impl AppState {
             .hostaddr(std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST))
             .ssl_mode(SslMode::Disable);
 
-        // Use as_deref() to handle Option<&str> without allocating Strings for defaults
         db_cfg.user(
             std::env::var("POSTGRES_USER")
                 .as_deref()
@@ -43,11 +42,9 @@ impl AppState {
                 .unwrap_or("fairplay-test"),
         );
 
-        // Fail fast if critical security config is missing
         let jwt_secret = std::env::var("JWT_SECRET")
             .expect("CRITICAL: JWT_SECRET environment variable must be set");
 
-        // Initialize AuthState (which connects to DB)
         let auth_state = AuthState::new(&db_cfg)
             .await
             .expect("Failed to connect to Postgres. Is it running?");

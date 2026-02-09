@@ -9,7 +9,6 @@ pub struct Database {
 }
 impl Database {
     pub async fn new(cfg: &Config) -> Result<Self, Error> {
-        // Removed .unwrap()
         let (client, connection) = cfg.connect(NoTls).await?;
 
         tokio::spawn(async {
