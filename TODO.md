@@ -1,5 +1,6 @@
 ## TODO:
 
-- jwt for tokens with https://github.com/Keats/jsonwebtoken
+- [x] jwt for tokens with https://github.com/Keats/jsonwebtoken
+- [x] stateless architecture refactor (remove in-memory token store)
 - video storage on minio
-- much much more
+- ffmpeg transcoding pipeline

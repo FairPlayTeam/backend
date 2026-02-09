@@ -1,7 +1,7 @@
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/D1D31GU3L5)
 
-# FairPlay MVP, Backend
-The backend rest api for fairplay
+# acrilic.org Backend
+The backend rest api for acrilic.org (formerly FairPlay)
 
 ➡️ The repository for the **currently running website** ([fairplay.video](https://fairplay.video)) can be found here: [FairPlay-Website\_DEMO](https://github.com/FairPlayTeam/FairPlay-Website_DEMO)
 ➡️ You can find the frontend code here : [https://github.com/FairPlayTeam/](https://github.com/FairPlayTeam/FairPlay-Website/)
@@ -9,7 +9,9 @@ The backend rest api for fairplay
 ## 🛠 Tech Stack
 
 * **Next.js** for the frontend and website
-* **rust** with **axum** for the publicly available rest api
+* **Rust** with **Axum** for the publicly available REST API
+* **PostgreSQL** for the database
+* **Argon2** & **JWT** for security and stateless authentication
 
 ## 🤝 Contribute
 
@@ -41,8 +43,8 @@ Want to participate? Join our development community on Discord:
 
 * **Authentication & Connection System**
 
-  * [ ] Implement secure user login and registration (email/password, OAuth).
-  * [ ] Manage sessions or JWT tokens for API access.
+  * [x] Implement secure user login and registration (email/password).
+  * [x] Manage sessions or JWT tokens for API access.
 
 * **Private Video Access Control**
 
