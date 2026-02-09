@@ -11,7 +11,7 @@ impl Database {
     pub async fn new(cfg: &Config) -> Result<Self, Error> {
         // Removed .unwrap()
         let (client, connection) = cfg.connect(NoTls).await?;
-        
+
         tokio::spawn(async {
             if let Err(e) = connection.await {
                 eprintln!("connection error: {}", e);
@@ -19,13 +19,9 @@ impl Database {
         });
 
         // Use ? operator to propagate errors
-        let create_user_statement = client
-            .prepare(include_str!("sql/create_user.sql"))
-            .await?;
-            
-        let get_user_statement = client
-            .prepare(include_str!("sql/get_user.sql"))
-            .await?;
+        let create_user_statement = client.prepare(include_str!("sql/create_user.sql")).await?;
+
+        let get_user_statement = client.prepare(include_str!("sql/get_user.sql")).await?;
 
         Ok(Self {
             client,
@@ -33,7 +29,7 @@ impl Database {
             get_user_statement,
         })
     }
-    
+
     pub async fn create_user(
         &self,
         username: &str,
