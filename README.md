@@ -3,7 +3,8 @@
 # FairPlay MVP, Backend
 The backend rest api for fairplay
 
-➡️ The repository for the **currently running website** ([fairplay.video](https://fairplay.video)) can be found here: [FairPlay-Website\_DEMO](https://github.com/FairPlayTeam/FairPlay-Website_DEMO)
+➡️ The repository is not activly maintained, and is not the backend running the FairPlay website. A more complete version, and the current backend can be found at [https://github.com/FairPlayTeam/ts-backend](https://github.com/FairPlayTeam/ts-backend).
+
 ➡️ You can find the frontend code here : [https://github.com/FairPlayTeam/](https://github.com/FairPlayTeam/FairPlay-Website/)
 
 ## 🛠 Tech Stack
