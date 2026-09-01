@@ -5,7 +5,7 @@ The backend rest api for fairplay
 
 ➡️ The repository is not activly maintained, and is not the backend running the FairPlay website. A more complete version, and the current backend can be found at [https://github.com/FairPlayTeam/ts-backend](https://github.com/FairPlayTeam/ts-backend).
 
-➡️ You can find the frontend code here : [https://github.com/FairPlayTeam/](https://github.com/FairPlayTeam/FairPlay-Website/)
+➡️ You can find the frontend code here : [https://github.com/FairPlayTeam/FairPlay-Website/](https://github.com/FairPlayTeam/FairPlay-Website/)
 
 ## 🛠 Tech Stack
 
@@ -15,7 +15,7 @@ The backend rest api for fairplay
 ## 🤝 Contribute
 
 Want to participate? Join our development community on Discord:
-👉 [discord.gg/fairplayteam](https://discord.gg/fairplayteam)
+👉 [https://discord.gg/xEq58BrQQP](https://discord.gg/xEq58BrQQP)
 
 ## Developer TODO List, Prioritized by Importance
 
